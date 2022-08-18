@@ -88,6 +88,9 @@ pub trait GroupFromIterator<V> {
         I: IntoIterator<Item = V>;
 }
 
+#[derive(Debug)]
+enum Never {}
+
 impl<K, V, C, H> GroupFromIterator<(K, V)> for HashMap<K, C, H>
 where
     K: Eq + Hash,
@@ -98,13 +101,8 @@ where
     where
         I: IntoIterator<Item = (K, V)>,
     {
-        let mut h: HashMap<K, C, H> = HashMap::default();
-
-        for (k, v) in iter {
-            h.entry(k).or_default().extend(std::iter::once(v));
-        }
-
-        h
+        let r: Result<Self, Never> = GroupFromIterator::group_from_iter(iter.into_iter().map(Ok));
+        r.unwrap()
     }
 }
 
@@ -118,14 +116,8 @@ where
     where
         I: IntoIterator<Item = Option<(K, V)>>,
     {
-        let mut h: HashMap<K, C, H> = HashMap::default();
-
-        for r in iter {
-            let (k, v) = r?;
-            h.entry(k).or_default().extend(std::iter::once(v));
-        }
-
-        Some(h)
+        let r: Result<HashMap<K, C, H>, ()> = GroupFromIterator::group_from_iter(iter.into_iter().map(|o| o.ok_or(())));
+        r.ok()
     }
 }
 
@@ -159,13 +151,8 @@ where
     where
         I: IntoIterator<Item = (K, V)>,
     {
-        let mut b: BTreeMap<K, C> = BTreeMap::default();
-
-        for (k, v) in iter {
-            b.entry(k).or_default().extend(std::iter::once(v));
-        }
-
-        b
+        let r: Result<Self, Never> = GroupFromIterator::group_from_iter(iter.into_iter().map(Ok));
+        r.unwrap()
     }
 }
 
@@ -178,14 +165,8 @@ where
     where
         I: IntoIterator<Item = Option<(K, V)>>,
     {
-        let mut b: BTreeMap<K, C> = BTreeMap::default();
-
-        for r in iter {
-            let (k, v) = r?;
-            b.entry(k).or_default().extend(std::iter::once(v));
-        }
-
-        Some(b)
+        let r: Result<BTreeMap<K, C>, ()> = GroupFromIterator::group_from_iter(iter.into_iter().map(|o| o.ok_or(())));
+        r.ok()
     }
 }
 
