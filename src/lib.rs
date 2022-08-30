@@ -90,7 +90,7 @@ pub trait GroupFromIterator<V> {
 
 impl<K, V, C> GroupFromIterator<(K, V)> for C
 where
-    C: InsertAndExtend<K, V> + Default,
+    C: InsertAndExtend<K, V>,
 {
     #[inline]
     fn group_from_iter<I>(iter: I) -> Self
@@ -107,7 +107,7 @@ where
 
 impl<K, V, C> GroupFromIterator<Option<(K, V)>> for Option<C>
 where
-    C: InsertAndExtend<K, V> + Default,
+    C: InsertAndExtend<K, V>,
 {
     #[inline]
     fn group_from_iter<I>(iter: I) -> Self
@@ -122,7 +122,7 @@ where
 
 impl<K, V, C, E> GroupFromIterator<Result<(K, V), E>> for Result<C, E>
 where
-    C: InsertAndExtend<K, V> + Default,
+    C: InsertAndExtend<K, V>,
 {
     fn group_from_iter<I>(iter: I) -> Self
     where
@@ -157,7 +157,7 @@ where
 
 /// A trait for mapping types to serve as a trivial wrapper
 /// over the Entry interface.
-pub trait InsertAndExtend<K, V> {
+pub trait InsertAndExtend<K, V>: Default {
     /// Creates collection with the given key if necessary
     /// and extends it with the given value.
     fn insert_and_extend(&mut self, key: K, value: V);
