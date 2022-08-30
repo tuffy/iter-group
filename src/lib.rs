@@ -88,105 +88,54 @@ pub trait GroupFromIterator<V> {
         I: IntoIterator<Item = V>;
 }
 
-#[derive(Debug)]
-enum Never {}
-
-impl<K, V, C, H> GroupFromIterator<(K, V)> for HashMap<K, C, H>
+impl<K, V, C> GroupFromIterator<(K, V)> for C
 where
-    K: Eq + Hash,
-    C: Default + Extend<V>,
-    H: BuildHasher + Default,
+    C: InsertAndExtend<K, V> + Default,
 {
+    #[inline]
     fn group_from_iter<I>(iter: I) -> Self
     where
         I: IntoIterator<Item = (K, V)>,
     {
+        #[derive(Debug)]
+        enum Never {}
+
         let r: Result<Self, Never> = GroupFromIterator::group_from_iter(iter.into_iter().map(Ok));
         r.unwrap()
     }
 }
 
-impl<K, V, C, H> GroupFromIterator<Option<(K, V)>> for Option<HashMap<K, C, H>>
+impl<K, V, C> GroupFromIterator<Option<(K, V)>> for Option<C>
 where
-    K: Eq + Hash,
-    C: Default + Extend<V>,
-    H: BuildHasher + Default,
+    C: InsertAndExtend<K, V> + Default,
 {
+    #[inline]
     fn group_from_iter<I>(iter: I) -> Self
     where
         I: IntoIterator<Item = Option<(K, V)>>,
     {
-        let r: Result<HashMap<K, C, H>, ()> = GroupFromIterator::group_from_iter(iter.into_iter().map(|o| o.ok_or(())));
+        let r: Result<C, ()> =
+            GroupFromIterator::group_from_iter(iter.into_iter().map(|o| o.ok_or(())));
         r.ok()
     }
 }
 
-impl<K, V, C, E, H> GroupFromIterator<Result<(K, V), E>> for Result<HashMap<K, C, H>, E>
+impl<K, V, C, E> GroupFromIterator<Result<(K, V), E>> for Result<C, E>
 where
-    K: Eq + Hash,
-    C: Default + Extend<V>,
-    H: BuildHasher + Default,
+    C: InsertAndExtend<K, V> + Default,
 {
     fn group_from_iter<I>(iter: I) -> Self
     where
         I: IntoIterator<Item = Result<(K, V), E>>,
     {
-        let mut h: HashMap<K, C, H> = HashMap::default();
+        let mut h = C::default();
 
         for r in iter {
             let (k, v) = r?;
-            h.entry(k).or_default().extend(std::iter::once(v));
+            h.insert_and_extend(k, v);
         }
 
         Ok(h)
-    }
-}
-
-impl<K, V, C> GroupFromIterator<(K, V)> for BTreeMap<K, C>
-where
-    K: Ord,
-    C: Default + Extend<V>,
-{
-    fn group_from_iter<I>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = (K, V)>,
-    {
-        let r: Result<Self, Never> = GroupFromIterator::group_from_iter(iter.into_iter().map(Ok));
-        r.unwrap()
-    }
-}
-
-impl<K, V, C> GroupFromIterator<Option<(K, V)>> for Option<BTreeMap<K, C>>
-where
-    K: Ord,
-    C: Default + Extend<V>,
-{
-    fn group_from_iter<I>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = Option<(K, V)>>,
-    {
-        let r: Result<BTreeMap<K, C>, ()> = GroupFromIterator::group_from_iter(iter.into_iter().map(|o| o.ok_or(())));
-        r.ok()
-    }
-}
-
-impl<K, V, C, E> GroupFromIterator<Result<(K, V), E>> for Result<BTreeMap<K, C>, E>
-where
-    K: Ord,
-    C: Default + Extend<V>,
-{
-    fn group_from_iter<I>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = Result<(K, V), E>>,
-    {
-        let mut b: BTreeMap<K, C> = BTreeMap::default();
-
-        for r in iter {
-            let (k, v) = r?;
-            b.entry(k).or_default().extend(std::iter::once(v));
-        }
-
-        Ok(b)
     }
 }
 
@@ -203,5 +152,36 @@ where
     #[inline]
     fn group<B: GroupFromIterator<V>>(self) -> B {
         B::group_from_iter(self)
+    }
+}
+
+/// A trait for mapping types to serve as a trivial wrapper
+/// over the Entry interface.
+pub trait InsertAndExtend<K, V> {
+    /// Creates collection with the given key if necessary
+    /// and extends it with the given value.
+    fn insert_and_extend(&mut self, key: K, value: V);
+}
+
+impl<K, V, E, H> InsertAndExtend<K, V> for HashMap<K, E, H>
+where
+    K: Eq + Hash,
+    E: Default + Extend<V>,
+    H: BuildHasher + Default,
+{
+    #[inline]
+    fn insert_and_extend(&mut self, key: K, value: V) {
+        self.entry(key).or_default().extend(std::iter::once(value));
+    }
+}
+
+impl<K, V, E> InsertAndExtend<K, V> for BTreeMap<K, E>
+where
+    K: Ord,
+    E: Default + Extend<V>,
+{
+    #[inline]
+    fn insert_and_extend(&mut self, key: K, value: V) {
+        self.entry(key).or_default().extend(std::iter::once(value));
     }
 }
