@@ -5,6 +5,8 @@ version = "0.1.0"
 authors = ["Brian Langenberger <bjl@usa.net>"]
 license = "MIT/Apache-2.0"
 edition = "2021"
+homepage = "https://github.com/tuffy/iter-group"
+repository = "https://github.com/tuffy/iter-group"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
