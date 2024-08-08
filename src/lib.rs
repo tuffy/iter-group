@@ -337,22 +337,36 @@ pub trait InsertAndIncrement<K, V>: Default {
 impl<K, V, H> InsertAndIncrement<K, V> for HashMap<K, V, H>
 where
     K: Eq + Hash,
-    V: Default + std::ops::AddAssign,
+    V: std::ops::AddAssign,
     H: BuildHasher + Default,
 {
     #[inline]
     fn insert_and_increment(&mut self, key: K, value: V) {
-        *self.entry(key).or_default() += value;
+        use std::collections::hash_map::Entry;
+
+        match self.entry(key) {
+            Entry::Occupied(o) => *o.into_mut() += value,
+            Entry::Vacant(v) => {
+                v.insert(value);
+            }
+        }
     }
 }
 
 impl<K, V> InsertAndIncrement<K, V> for BTreeMap<K, V>
 where
     K: Ord,
-    V: Default + std::ops::AddAssign,
+    V: std::ops::AddAssign,
 {
     #[inline]
     fn insert_and_increment(&mut self, key: K, value: V) {
-        *self.entry(key).or_default() += value;
+        use std::collections::btree_map::Entry;
+
+        match self.entry(key) {
+            Entry::Occupied(o) => *o.into_mut() += value,
+            Entry::Vacant(v) => {
+                v.insert(value);
+            }
+        }
     }
 }
